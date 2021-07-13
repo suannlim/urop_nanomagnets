@@ -1,0 +1,82 @@
+//output directory: widthMod_SquareType1.out/
+length := 830e-9
+wideWidth := 230e-9
+wideLength := length - wideWidth
+thinWidth := 145e-9
+thinLength := length - thinWidth
+vertexGap := 120e-9
+angle := 1
+sqrt2 := 1.41421356237
+seperation := (sqrt2 / 2) * ((length / 2) + vertexGap)
+cellDimX := 5e-9
+cellDimY := 5e-9
+cellDimZ := 10e-9
+cellNumX := 3
+cellNumY := 3
+gridLengthX := (sqrt2 / 2) * (2*length*cellNumX + 4*vertexGap*cellNumX)
+gridLengthY := (sqrt2 / 2) * ((2 * length) + (4 * vertexGap)) * cellNumY
+gridLengthZ := 20e-9
+gridSizeX := trunc(gridLengthX / cellDimX)
+gridSizeY := trunc(gridLengthY / cellDimY)
+gridSizeZ := trunc(gridLengthZ / cellDimZ)
+if remainder(gridSizeX, 2) != 0 {
+	gridSizeX = gridSizeX + 1
+}
+if remainder(gridSizeY, 2) != 0 {
+	gridSizeY = gridSizeY + 1
+}
+SetGridSize(gridSizeX, gridSizeY, gridSizeZ)
+SetCellSize(cellDimX, cellDimY, cellDimZ)
+SetPBC(5, 5, 0)
+//resizing...
+EdgeSmooth = 8
+wideCircleL := Circle(wideWidth).transl(0, wideLength/2, 0)
+wideCircleR := Circle(wideWidth).transl(0, -wideLength/2, 0)
+wideBar := rect(wideWidth, wideLength).add(wideCircleL).add(wideCircleR)
+thinCircleL := Circle(thinWidth).transl(0, thinLength/2, 0)
+thinCircleR := Circle(thinWidth).transl(0, -thinLength/2, 0)
+thinBar := rect(thinWidth, thinLength).add(thinCircleL).add(thinCircleR)
+wideBar1 := wideBar.rotz(45*pi/180).Transl((-2*cellNumX+1)*seperation, (2*cellNumY-1)*seperation, 0)
+wideBar2 := wideBar.rotz(-45*pi/180).Transl((-2*cellNumX+1)*seperation, (2*cellNumY-3)*seperation, 0)
+thinBar1 := thinBar.rotz(-45*pi/180).Transl((-2*cellNumX+3)*seperation, (2*cellNumY-1)*seperation, 0)
+thinBar2 := thinBar.rotz(45*pi/180).Transl((-2*cellNumX+3)*seperation, (2*cellNumY-3)*seperation, 0)
+group := universe().sub(universe())
+k := 0
+for i := 0; i < cellNumX; i++ {
+	for j := 0; j < cellNumY; j++ {
+		bar1 := wideBar1.transl(i*4*seperation, -j*4*seperation, 0)
+		bar2 := thinBar1.transl(i*4*seperation, -j*4*seperation, 0)
+		bar3 := wideBar2.transl(i*4*seperation, -j*4*seperation, 0)
+		bar4 := thinBar2.transl(i*4*seperation, -j*4*seperation, 0)
+		group = group.add(bar1).add(bar2).add(bar3).add(bar4)
+		defregion(k+1, bar1)
+		defregion(k+2, bar2)
+		defregion(k+3, bar3)
+		defregion(k+4, bar4)
+		m.setregion(k+1, uniform(-1, 1, 0))
+		m.setregion(k+2, uniform(-1, -1, 0))
+		m.setregion(k+3, uniform(1, 1, 0))
+		m.setregion(k+4, uniform(1, -1, 0))
+		k = k + 4
+	}
+}
+SetGeom(group)
+Msat = 750e3
+Aex = 13e-12
+alpha = 0.001
+Bmax := 40e-3
+Bstep := 1e-3
+MinimizerStop = 1e-6
+TableAdd(B_ext)
+for B := Bmax; B >= -Bmax; B -= Bstep {
+	B_ext = vector(B*cos((angle*pi)/180), B*sin((angle*pi)/180), 0)
+	minimize()
+	tablesave()
+}
+Snapshot(m)
+for B := -Bmax; B <= Bmax; B += Bstep {
+	B_ext = vector(B*cos((angle*pi)/180), B*sin((angle*pi)/180), 0)
+	minimize()
+	tablesave()
+}
+Snapshot(m)

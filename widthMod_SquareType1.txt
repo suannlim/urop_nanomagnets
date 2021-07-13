@@ -1,0 +1,158 @@
+// S sample dimensions
+
+length := 830e-9 // length is original size of the rectangle
+
+// defining the wide bar dimensions
+wideWidth := 230e-9
+wideLength := length - wideWidth // length of only the rectangular part of the bar, first value is the desired length of
+
+
+
+// defining the thin bar dimensions
+thinWidth :=145e-9
+thinLength := length - thinWidth
+
+
+vertexGap := 120e-9
+
+angle := 1 // angle always offset by 1 to mimic real life
+
+
+sqrt2 := 1.41421356237
+seperation := (sqrt2/2) * ((length/2) + vertexGap) // defining the seperation between middle of bars
+
+
+
+// defining the cell size (as definined in the paper)
+cellDimX := 5e-9
+cellDimY := 5e-9
+cellDimZ := 10e-9
+
+
+// defining the number of cells in a certain direction
+cellNumX := 3
+cellNumY := 3
+
+
+// defining the length of the grid (grid contains cells which are smaller than bars)
+
+gridLengthX := (sqrt2/2) * (2 * length * cellNumX  + 4 * vertexGap * cellNumX)
+gridLengthY := (sqrt2/2) * ((2 * length) + (4 * vertexGap)) * cellNumY
+gridLengthZ := 20e-9
+
+
+// now we define grid size which is the number of cells
+gridSizeX := trunc(gridLengthX/cellDimX)
+gridSizeY := trunc(gridLengthY/cellDimY)
+gridSizeZ := trunc(gridLengthZ/cellDimZ)
+
+
+// ensuring that the grid size is in powers of 2
+if remainder(gridSizeX,2) !=0{;
+    gridSizeX = gridSizeX + 1
+};
+if remainder(gridSizeY,2) !=0{;
+    gridSizeY = gridSizeY + 1
+};
+
+// define the grid and cell size
+SetGridSize(gridSizeX, gridSizeY, gridSizeZ);
+SetCellSize(cellDimX, cellDimY, cellDimZ);
+SetPBC(5, 5, 0) // setting periodic boundary conditions in X and Y direction
+
+EdgeSmooth = 8;
+
+
+// creating the shape for the wide bar
+wideCircleL := Circle(wideWidth).transl(0,wideLength/2,0)
+wideCircleR := Circle(wideWidth).transl(0, -wideLength/2, 0)
+wideBar := rect(wideWidth, wideLength).add(wideCircleL).add(wideCircleR)
+
+// creating the shape for the thin bar
+thinCircleL := Circle(thinWidth).transl(0, thinLength/2, 0)
+thinCircleR := Circle(thinWidth).transl(0, -thinLength/2, 0)
+thinBar := rect(thinWidth, thinLength).add(thinCircleL).add(thinCircleR)
+
+
+// each thin and wide bar have 2 orientations, we define the two orientations below
+wideBar1 := wideBar.rotz(45*pi/180).Transl((-2*cellNumX + 1) * seperation,(2*cellNumY - 1) * seperation , 0) // only works for square lattice
+wideBar2 := wideBar.rotz(-45*pi/180).Transl((-2*cellNumX + 1) * seperation, (2*cellNumY - 3) * seperation, 0)
+thinBar1 := thinBar.rotz(-45*pi/180).Transl((-2*cellNumX + 3) * seperation, (2*cellNumY - 1) * seperation, 0)
+thinBar2 := thinBar.rotz(45*pi/180).Transl((-2*cellNumX + 3) * seperation, (2*cellNumY - 3) * seperation, 0)
+
+
+
+group := universe().sub(universe()) // not super sure what this does
+k := 0 // k is used to identify each bar
+for i := 0; i < cellNumX; i++{ // for loop, ++ adds one to i at end of loop
+    for j := 0; j < cellNumY; j++{ // for loop, ++ adds one to j at end of loop
+
+        bar1 := wideBar1.transl(i*4*seperation, -j*4*seperation, 0)
+        bar2 := thinBar1.transl(i*4*seperation, -j*4*seperation, 0)
+        bar3 := wideBar2.transl(i*4*seperation, -j*4*seperation, 0)
+        bar4 := thinBar2.transl(i*4*seperation, -j*4*seperation, 0)
+        
+
+       
+
+        // defregion allows us to reference the bar later on, used to set the magnetisation
+        group = group.add(bar1).add(bar2).add(bar3).add(bar4)
+        defregion(k+1, bar1)
+        defregion(k+2, bar2)
+        defregion(k+3, bar3)
+        defregion(k+4, bar4)
+        
+
+        // set region defines the magnetisation along that bar
+        // setting it in type1 state (ground state)
+        m.setregion(k+1, uniform(-1, 1, 0))
+        m.setregion(k+2, uniform(-1, -1, 0))
+        m.setregion(k+3, uniform(1, 1, 0))
+        m.setregion(k+4, uniform(1, -1, 0))
+
+        k = k + 4 // adds 4 so each bar has a unique k value
+       
+        }
+
+}
+
+SetGeom(group)
+
+
+// material parameters for NiFe
+Msat = 750e3 // saturation magnetisation in units of A/m
+Aex = 13e-12 // exchange stiffness in units of Joules
+alpha = 0.001 // damping coefficient - larger number makes it faster
+
+
+// defining the magnetic field
+
+Bmax := 40e-3 //defined in T
+Bstep := 1e-3 // steps in which Bfield changes
+MinimizerStop = 1e-6
+TableAdd(B_ext)
+
+for B := Bmax; B >= -Bmax; B-=Bstep {
+    B_ext = vector(B*cos((angle*pi)/180), B*sin((angle*pi)/180), 0)
+    minimize() // relaxing the bars 
+    tablesave()
+    Snapshot(m)
+}
+
+for B := -Bmax; B <= Bmax; B+=Bstep {
+    B_ext = vector(B*cos((angle*pi)/180), B*sin((angle*pi)/180), 0)
+    minimize() // relaxing the bars 
+    tablesave()
+    Snapshot(m)
+}
+
+Snapshot(m)
+
+
+
+
+
+
+
+
+
