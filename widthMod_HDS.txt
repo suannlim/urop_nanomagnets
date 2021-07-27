@@ -133,7 +133,7 @@ alpha = 0.001 // damping coefficient - larger number makes it faster
 
 Bmax := 30e-3 //defined in T
 BstepLarge := 5e-3 // steps in which Bfield changes
-BstepSmall := 0.1e-3
+BstepSmall := 0.5e-3
 
 MinimizerStop = 1e-6
 TableAdd(B_ext)
@@ -151,7 +151,7 @@ for B := Bmax; B >= -20e-3; B-=BstepLarge {
     save(m)
 }
 
-for i:=0 ; i<=4; i+=1 {
+for i:=0 ; i<=3; i+=1 {
     for B := -20e-3; B <= 20e-3; B+=BstepSmall {
         B_ext = vector(B*sin((angle*pi)/180), B*cos((angle*pi)/180), 0)
         minimize() // relaxing the bars 
