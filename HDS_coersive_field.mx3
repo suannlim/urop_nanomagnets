@@ -1,5 +1,9 @@
 // HDS square dimensions
 
+
+// defining the coersive field set up (either all fat bar vortex (0) or only middle bar vortex (1))
+start_state := 0
+
 // setting the random seed so that randomness is same everytime
 randSeed(1)
 
@@ -122,11 +126,38 @@ for i := 0; i < cellNumX; i++{ // for loop, ++ adds one to i at end of loop
         
         
         // set region defines the magnetisation along that bar
-        // setting the initial magnetisation at vortex state
-        m.setregion(k+1, vortex(1, -1).transl(i*4*seperation+(-2*cellNumX + 1) * seperation, -j*4*seperation+(2*cellNumY - 1) * seperation , 0))
-        m.setregion(k+2, uniform(-1,-1,0))
-        m.setregion(k+3, vortex(1,-1).transl(i*4*seperation+(-2*cellNumX + 1) * seperation, -j*4*seperation+(2*cellNumY - 3) * seperation, 0))
-        m.setregion(k+4, uniform(1,-1,0))
+
+
+        // defining vortex in only fat bar
+        if (start_state == 0){
+            if (k == 16){
+                print("fat bar vortex")
+                
+                m.setregion(k+1, uniform(-1, 1, 0))
+                m.setregion(k+2, uniform(-1, -1, 0))
+                m.setregion(k+3,vortex(1,-1).transl(i*4*seperation+(-2*cellNumX + 1) * seperation, -j*4*seperation+(2*cellNumY - 3) * seperation, 0))
+                m.setregion(k+4,uniform(1, -1, 0))
+            }else {
+                print("normal bar")
+                m.setregion(k+1, uniform(-1, 1, 0))
+                m.setregion(k+2, uniform(-1, -1, 0))
+                m.setregion(k+3, uniform(1, 1, 0))
+                m.setregion(k+4, uniform(1, -1, 0))                                                                                                                                                                                       
+            }
+        }
+
+
+
+
+        if (start_state == 1){
+            print("all fat bar vortex")
+             // setting the initial magnetisation at vortex state
+             m.setregion(k+1, vortex(1, -1).transl(i*4*seperation+(-2*cellNumX + 1) * seperation, -j*4*seperation+(2*cellNumY - 1) * seperation , 0))
+             m.setregion(k+2, uniform(-1,-1,0))
+             m.setregion(k+3, vortex(1,-1).transl(i*4*seperation+(-2*cellNumX + 1) * seperation, -j*4*seperation+(2*cellNumY - 3) * seperation, 0))
+             m.setregion(k+4, uniform(1,-1,0))
+        }
+           
 
         //m = vortex(1,-1).transl(i*4*seperation, -j*4*seperation, 0)
         //m = uniform(-1,-1,0).transl(i*4*seperation, -j*4*seperation, 0)
@@ -150,8 +181,8 @@ alpha = 0.001 // damping coefficient - larger number makes it faster
 
 // defining the magnetic field
 
-Bmax := 30e-3 //defined in T
-BstepLarge := 3e-3 // steps in which Bfield changes
+Bmax := 34e-3 //defined in T
+BstepLarge := 2e-3 // steps in which Bfield changes
 BstepSmall := 0.1e-3
 
 MinimizerStop = 1e-6
@@ -161,7 +192,26 @@ TableAdd(B_ext)
 relax()
 minimize()
     
-for B := 0.0; B <= 18e-3; B+=BstepLarge {
+for B := 0.0; B >= -Bmax; B-=BstepLarge {
+    B_ext = vector(B*sin((angle*pi)/180), B*cos((angle*pi)/180), 0)
+    minimize() // relaxing the bars 
+    tablesave()
+    Snapshot(m)
+    print(B)
+    save(m)
+}
+
+/*
+for B := -25e-3; B >= -29.5e-3; B-=BstepSmall {
+    B_ext = vector(B*sin((angle*pi)/180), B*cos((angle*pi)/180), 0)
+    minimize() // relaxing the bars 
+    tablesave()
+    Snapshot(m)
+    print(B)
+    save(m)
+}
+
+for B := -29.5e-3; B >= -Bmax; B-=BstepLarge {
     B_ext = vector(B*sin((angle*pi)/180), B*cos((angle*pi)/180), 0)
     minimize() // relaxing the bars 
     tablesave()
@@ -171,26 +221,7 @@ for B := 0.0; B <= 18e-3; B+=BstepLarge {
 }
 
 
-for B := 18e-3; B <= 22.5e-3; B+=BstepSmall {
-    B_ext = vector(B*sin((angle*pi)/180), B*cos((angle*pi)/180), 0)
-    minimize() // relaxing the bars 
-    tablesave()
-    Snapshot(m)
-    print(B)
-    save(m)
-}
-
-for B := 22.5e-3; B <= Bmax; B+=BstepLarge {
-    B_ext = vector(B*sin((angle*pi)/180), B*cos((angle*pi)/180), 0)
-    minimize() // relaxing the bars 
-    tablesave()
-    Snapshot(m)
-    print(B)
-    save(m)
-}
-
-
-
+*/
 
 
 
